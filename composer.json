@@ -16,7 +16,7 @@
             "Gelaku\\LaravelBackup\\": "src"
         },
         "files": [
-            "src/Helpers/functions.php"
+            "src/Helpers/function.php"
         ]
     },
     "extra": {
