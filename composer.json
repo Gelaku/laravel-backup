@@ -1,0 +1,29 @@
+{
+    "name": "gelaku\/laravel-backup",
+    "description": "数据库备份或还原",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "licjie",
+            "email": "licjie@yeah.net"
+        }
+    ],
+    "require": {
+        "php": ">=7.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Gelaku\\LaravelBackup\\": "src"
+        },
+        "files": [
+            "src/Helpers/functions.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Gelaku\\LaravelBackup\\ServiceProvider"
+            ]
+        }
+    }
+}
