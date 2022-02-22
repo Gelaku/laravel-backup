@@ -18,7 +18,7 @@ Laravel 配置写在 config/database.php 中：
 // 数据库备份
 'backup'=>[
     // 数据库备份路径
-    'path' => './Data/',
+    'path' => './backup/',
     // 数据库备份卷大小
     'part' => 20971520,
     // 数据库备份文件是否启用压缩 0不压缩 1 压缩
@@ -36,9 +36,11 @@ $data = $backup->dataList();
 // 备份文件列表
 $data = $backup->fileList();
 // 备份数据库表单
-$data = $backup->setFile($file)->backup($tables[$id], $start);
+$data = $backup->backup($table);
 // 导入表
-$data = $backup->setFile($file)->import($start);
+$time = $request->input('time');
+$file  = $backup->getFile('timeverif',$time);
+$data = $backup->setFile($file)->import(0,$time);
 // 修复表
 $data = $backup->repair($tables);
 // 优化表

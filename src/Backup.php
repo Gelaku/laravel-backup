@@ -32,22 +32,24 @@ class Backup
      * @var integer
      */
     private $config = array(
-        'path' => './Data/',
-        //数据库备份路径
-        'part' => 20971520,
-        //数据库备份卷大小
+        // 数据库备份路径
+        'path'     => './backup/',
+        // 数据库备份卷大小
+        'part'     => 20971520,
+        // 数据库备份文件是否启用压缩 0不压缩 1 压缩
         'compress' => 0,
-        //数据库备份文件是否启用压缩 0不压缩 1 压缩
-        'level' => 9,
+        // 数据库备份文件压缩级别 1普通 4 一般  9最高
+        'level'    => 9,
     );
+
     /**
      * 数据库备份构造方法
-     * @param array  $file   备份或还原的文件信息
-     * @param array  $config 备份配置信息
+     * @param  array  $file  备份或还原的文件信息
+     * @param  array  $config  备份配置信息
      */
     public function __construct($config = [])
     {
-        $this->config = is_array($config) && !empty($config)?array_merge($this->config, $config):$this->config;
+        $this->config = is_array($config) && !empty($config) ? array_merge($this->config, $config) : $this->config;
         //初始化文件名
         $this->setFile();
         //初始化数据库连接参数
@@ -57,20 +59,22 @@ class Backup
             throw new \Exception("The current directory is not writable");
         }
     }
+
     /**
      * 设置脚本运行超时时间
      * 0表示不限制，支持连贯操作
      */
-    public function setTimeout($time=null)
+    public function setTimeout($time = null)
     {
         if (!is_null($time)) {
-            set_time_limit($time)||ini_set("max_execution_time", $time);
+            set_time_limit($time) || ini_set("max_execution_time", $time);
         }
         return $this;
     }
+
     /**
      * 设置数据库连接必备参数
-     * @param array  $dbconfig   数据库连接配置信息
+     * @param  array  $dbconfig  数据库连接配置信息
      * @return object
      */
     public function setDbConn($dbconfig = [])
@@ -82,9 +86,11 @@ class Backup
         }
         return $this;
     }
+
     /**
      * 设置备份文件名
-     * @param Array  $file  文件名字
+     *
+     * @param  Array  $file  文件名字
      * @return object
      */
     public function setFile($file = null)
@@ -100,15 +106,22 @@ class Backup
         }
         return $this;
     }
-    //数据库表列表
-    public function dataList($table = null,$type=1)
+
+    /**
+     * 数据库表列表
+     *
+     * @param  null  $table
+     * @param  int  $type
+     * @return array
+     */
+    public function dataList($table = null, $type = 1)
     {
         if (is_null($table)) {
             $list = DB::select("SHOW TABLE STATUS");
         } else {
             if ($type) {
                 $list = DB::select("SHOW FULL COLUMNS FROM {$table}");
-            }else{
+            } else {
                 $list = DB::select("show columns from {$table}");
             }
         }
@@ -117,7 +130,12 @@ class Backup
 
         return array_map('array_change_key_case', $list);
     }
-    //数据库备份文件列表
+
+    /**
+     * 数据库备份文件列表
+     *
+     * @return array
+     */
     public function fileList()
     {
         if (!is_dir($this->config['path'])) {
@@ -129,28 +147,37 @@ class Backup
         $list = array();
         foreach ($glob as $name => $file) {
             if (preg_match('/^\\d{8,8}-\\d{6,6}-\\d+\\.sql(?:\\.gz)?$/', $name)) {
-                $name1= $name;
-                $name = sscanf($name, '%4s%2s%2s-%2s%2s%2s-%d');
-                $date = "{$name[0]}-{$name[1]}-{$name[2]}";
-                $time = "{$name[3]}:{$name[4]}:{$name[5]}";
-                $part = $name[6];
+                $name1 = $name;
+                $name  = sscanf($name, '%4s%2s%2s-%2s%2s%2s-%d');
+                $date  = "{$name[0]}-{$name[1]}-{$name[2]}";
+                $time  = "{$name[3]}:{$name[4]}:{$name[5]}";
+                $part  = $name[6];
                 if (isset($list["{$date} {$time}"])) {
-                    $info = $list["{$date} {$time}"];
+                    $info         = $list["{$date} {$time}"];
                     $info['part'] = max($info['part'], $part);
                     $info['size'] = $info['size'] + $file->getSize();
                 } else {
                     $info['part'] = $part;
                     $info['size'] = $file->getSize();
                 }
-                $extension = strtoupper(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
-                $info['name']=$name1;
-                $info['compress'] = $extension === 'SQL' ? '-' : $extension;
-                $info['time'] = strtotime("{$date} {$time}");
+                $extension               = strtoupper(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
+                $info['name']            = $name1;
+                $info['compress']        = $extension === 'SQL' ? '-' : $extension;
+                $info['time']            = strtotime("{$date} {$time}");
                 $list["{$date} {$time}"] = $info;
             }
         }
         return $list;
     }
+
+    /**
+     * 获取文件名称
+     *
+     * @param  string  $type
+     * @param  int  $time
+     * @return array|false|mixed|string
+     * @throws \Exception
+     */
     public function getFile($type = '', $time = 0)
     {
         //
@@ -159,19 +186,19 @@ class Backup
         }
         switch ($type) {
             case 'time':
-                $name = date('Ymd-His', $time) . '-*.sql*';
-                $path = realpath($this->config['path']) . DIRECTORY_SEPARATOR . $name;
+                $name = date('Ymd-His', $time).'-*.sql*';
+                $path = realpath($this->config['path']).DIRECTORY_SEPARATOR.$name;
                 return glob($path);
                 break;
             case 'timeverif':
-                $name = date('Ymd-His', $time) . '-*.sql*';
-                $path = realpath($this->config['path']) . DIRECTORY_SEPARATOR . $name;
+                $name  = date('Ymd-His', $time).'-*.sql*';
+                $path  = realpath($this->config['path']).DIRECTORY_SEPARATOR.$name;
                 $files = glob($path);
-                $list = array();
+                $list  = array();
                 foreach ($files as $name) {
-                    $basename = basename($name);
-                    $match = sscanf($basename, '%4s%2s%2s-%2s%2s%2s-%d');
-                    $gz = preg_match('/^\\d{8,8}-\\d{6,6}-\\d+\\.sql.gz$/', $basename);
+                    $basename        = basename($name);
+                    $match           = sscanf($basename, '%4s%2s%2s-%2s%2s%2s-%d');
+                    $gz              = preg_match('/^\\d{8,8}-\\d{6,6}-\\d+\\.sql.gz$/', $basename);
                     $list[$match[6]] = array($match[6], $name, $gz);
                 }
                 $last = end($list);
@@ -191,18 +218,30 @@ class Backup
                 return $this->config['path'];
                 break;
             default:
-                $arr = array('pathname' => "{$this->config['path']}{$this->file['name']}-{$this->file['part']}.sql", 'filename' => "{$this->file['name']}-{$this->file['part']}.sql", 'filepath' => $this->config['path'], 'file' => $this->file);
+                $arr = array(
+                    'pathname' => "{$this->config['path']}{$this->file['name']}-{$this->file['part']}.sql",
+                    'filename' => "{$this->file['name']}-{$this->file['part']}.sql",
+                    'filepath' => $this->config['path'], 'file' => $this->file
+                );
                 return $arr;
         }
     }
-    //删除备份文件
+
+    /**
+     * 删除备份文件
+     *
+     * @param $time
+     * @return mixed
+     * @throws \Exception
+     */
     public function delFile($time)
     {
         if ($time) {
             $file = $this->getFile('time', $time);
-            array_map("unlink", $this->getFile('time', $time));
-            if (count($this->getFile('time', $time))) {
-                throw new \Exception("File {$path} deleted failed");
+            array_map("unlink", $file);
+            $file = $this->getFile('time', $time);
+            if (count($file)) {
+                throw new \Exception("File ".implode('##', $file)." deleted failed");
             } else {
                 return $time;
             }
@@ -210,24 +249,25 @@ class Backup
             throw new \Exception("{$time} Time parameter is incorrect");
         }
     }
+
     /**
      * 下载备份
-     * @Author: 浪哥 <939881475@qq.com>
-     * @param string $time
-     * @param integer $part
+     *
+     * @param  string  $time
+     * @param  integer  $part
      * @return array|mixed|string
      */
     public function downloadFile($time, $part = 0)
     {
-        $file = $this->getFile('time', $time);
+        $file     = $this->getFile('time', $time);
         $fileName = $file[$part];
         if (file_exists($fileName)) {
             ob_end_clean();
             header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
             header('Content-Description: File Transfer');
             header('Content-Type: application/octet-stream');
-            header('Content-Length: ' . filesize($fileName));
-            header('Content-Disposition: attachment; filename=' . basename($fileName));
+            header('Content-Length: '.filesize($fileName));
+            header('Content-Disposition: attachment; filename='.basename($fileName));
             readfile($fileName);
         } else {
             throw new \Exception("{$time} File is abnormal");
@@ -236,21 +276,22 @@ class Backup
 
     /**
      * 导入表
+     *
      * @param $start
      * @param $time
      * @return array|false|int
      * @throws Exception
      */
-    public function import($start,$time)
+    public function import($start, $time)
     {
         //还原数据
-        $this->file=$this->getFile('time',$time);
+        $this->file = $this->getFile('time', $time);
         if ($this->config['compress']) {
-            $gz = gzopen($this->file[0], 'r');
+            $gz   = gzopen($this->file[0], 'r');
             $size = 0;
         } else {
             $size = filesize($this->file[0]);
-            $gz = fopen($this->file[0], 'r');
+            $gz   = fopen($this->file[0], 'r');
         }
         $sql = '';
         if ($start) {
@@ -271,8 +312,10 @@ class Backup
         }
         return array($start, $size);
     }
+
     /**
      * 写入初始数据
+     *
      * @return boolean true - 写入成功，false - 写入失败
      */
     public function Backup_Init()
@@ -280,25 +323,26 @@ class Backup
         $sql = "-- -----------------------------\n";
         $sql .= "-- Think MySQL Data Transfer \n";
         $sql .= "-- \n";
-        $sql .= "-- Host     : " . $this->dbconfig['host'] . "\n";
-        $sql .= "-- Port     : " . $this->dbconfig['port'] . "\n";
-        $sql .= "-- Database : " . $this->dbconfig['database'] . "\n";
+        $sql .= "-- Host     : ".$this->dbconfig['host']."\n";
+        $sql .= "-- Port     : ".$this->dbconfig['port']."\n";
+        $sql .= "-- Database : ".$this->dbconfig['database']."\n";
         $sql .= "-- \n";
         $sql .= "-- Part : #{$this->file['part']}\n";
-        $sql .= "-- Date : " . date("Y-m-d H:i:s") . "\n";
+        $sql .= "-- Date : ".date("Y-m-d H:i:s")."\n";
         $sql .= "-- -----------------------------\n\n";
         $sql .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";
         return $this->write($sql);
     }
+
     /**
      * 备份表结构
-     * @param  string  $table 表名
-     * @param  integer $start 起始行数
+     *
+     * @param  string  $table  表名
+     * @param  integer  $start  起始行数
      * @return boolean        false - 备份失败
      */
-    public function backup($table, $start)
+    public function backup($table, $start = 0)
     {
-
         // 备份表结构
         if (0 == $start) {
             $result = DB::selectOne("SHOW CREATE TABLE `{$table}`");
@@ -310,14 +354,14 @@ class Backup
             $sql .= "-- Table structure for `{$table}`\n";
             $sql .= "-- -----------------------------\n";
             $sql .= "DROP TABLE IF EXISTS `{$table}`;\n";
-            $sql .= trim($result['Create Table']) . ";\n\n";
+            $sql .= trim($result['Create Table']).";\n\n";
             if (false === $this->write($sql)) {
                 return false;
             }
         }
         //数据总数
         $result = DB::selectOne("SELECT COUNT(*) AS count FROM `{$table}`");
-        $count = $result->count;
+        $count  = $result->count;
         //备份表数据
         if ($count) {
             //写入数据注释
@@ -333,7 +377,8 @@ class Backup
             $result = object_to_array($result);
             foreach ($result as $row) {
                 $row = array_map('addslashes', $row);
-                $sql = "INSERT INTO `{$table}` VALUES ('" . str_replace(array("\r", "\n"), array('\\r', '\\n'), implode("', '", $row)) . "');\n";
+                $sql = "INSERT INTO `{$table}` VALUES ('".str_replace(array("\r", "\n"), array('\\r', '\\n'),
+                        implode("', '", $row))."');\n";
                 if (false === $this->write($sql)) {
                     return false;
                 }
@@ -347,18 +392,19 @@ class Backup
         //备份下一表
         return true;
     }
+
     /**
      * 优化表
-     * @param  String $tables 表名
+     *
+     * @param  String  $tables  表名
      * @return String $tables
      */
     public function optimize($tables = null)
     {
         if ($tables) {
-
             if (is_array($tables)) {
                 $tables = implode('`,`', $tables);
-                $list = DB::select("OPTIMIZE TABLE `{$tables}`");
+                $list   = DB::select("OPTIMIZE TABLE `{$tables}`");
             } else {
                 $list = DB::select("OPTIMIZE TABLE `{$tables}`");
             }
@@ -371,18 +417,19 @@ class Backup
             throw new \Exception("Please specify the table to be repaired!");
         }
     }
+
     /**
      * 修复表
-     * @param  String $tables 表名
+     *
+     * @param  String  $tables  表名
      * @return String $tables
      */
     public function repair($tables = null)
     {
         if ($tables) {
-
             if (is_array($tables)) {
                 $tables = implode('`,`', $tables);
-                $list = DB::select("REPAIR TABLE `{$tables}`");
+                $list   = DB::select("REPAIR TABLE `{$tables}`");
             } else {
                 $list = DB::select("REPAIR TABLE `{$tables}`");
             }
@@ -397,9 +444,11 @@ class Backup
             throw new \Exception("Please specify the table to be repaired!");
         }
     }
+
     /**
      * 写入SQL语句
-     * @param  string $sql 要写入的SQL语句
+     *
+     * @param  string  $sql  要写入的SQL语句
      * @return boolean     true - 写入成功，false - 写入失败！
      */
     private function write($sql)
@@ -411,9 +460,11 @@ class Backup
         $this->open($size);
         return $this->config['compress'] ? @gzwrite($this->fp, $sql) : @fwrite($this->fp, $sql);
     }
+
     /**
      * 打开一个卷，用于写入数据
-     * @param  integer $size 写入数据的大小
+     *
+     * @param  integer  $size  写入数据的大小
      */
     private function open($size)
     {
@@ -428,7 +479,7 @@ class Backup
             }
         } else {
             $backuppath = $this->config['path'];
-            $filename = "{$backuppath}{$this->file['name']}-{$this->file['part']}.sql";
+            $filename   = "{$backuppath}{$this->file['name']}-{$this->file['part']}.sql";
             if ($this->config['compress']) {
                 $filename = "{$filename}.gz";
                 $this->fp = @gzopen($filename, "a{$this->config['level']}");
@@ -438,9 +489,11 @@ class Backup
             $this->size = filesize($filename) + $size;
         }
     }
+
     /**
      * 检查目录是否可写
-     * @param  string   $path    目录
+     *
+     * @param  string  $path  目录
      * @return boolean
      */
     protected function checkPath($path)
@@ -454,12 +507,13 @@ class Backup
             return false;
         }
     }
+
     /**
      * 析构方法，用于关闭文件资源
      */
     public function __destruct()
     {
-        if($this->fp){
+        if ($this->fp) {
             $this->config['compress'] ? @gzclose($this->fp) : @fclose($this->fp);
         }
     }
