@@ -2,6 +2,8 @@
 
 <p align="center"> 数据库备份或还原.</p>
 
+## 翻译：tp5er
+[地址](https://github.com/tp5er/tp5-databackup)
 
 ## Installing
 
